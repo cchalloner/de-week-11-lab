@@ -1,0 +1,23 @@
+Week 11 demo and lab data guide
+
+File: data/sms_messages.csv
+Rows supplied: 4609. Use this observed file count rather than the repository webpage's instance count. The course removed 965 of the original 5,574 messages for classroom use (see Changes), so record_id values have gaps.
+record_id: course-added identifier based on source line order. Never a predictor.
+text: original SMS message. The only predictor.
+is_spam: target, 1 = spam, 0 = ham (a legitimate message).
+
+Rules: keep the raw DataFrame unchanged. Reject missing/blank text or targets outside {0,1} and retain IDs/counts. For this classroom workflow, make a duplicate key by stripping surrounding whitespace and lowercasing text. Check whether any key has conflicting labels before removing duplicates. Stop and investigate conflicts rather than choosing a label. Otherwise keep the first record per key and record removed IDs. Do this before splitting so equivalent copies cannot appear in both sets. Keep the original text for modeling. This limited normalization is for duplicate checks, not spelling correction.
+
+Text quality: before preparing the data, report counts of missing text, blank or whitespace-only text, and text with no usable tokens under the default CountVectorizer analyzer. Keep no-token messages (for example, emoticons). They are real messages with valid labels. Record their IDs, because their text features will be all zeros.
+
+Derived numeric features (calculated from each row's own text, with missing text treated as empty):
+char_count: number of characters after removing surrounding whitespace.
+digit_count: number of digit characters (0-9).
+Apply the same function to training, test, and new rows. Row-by-row calculations learn nothing from other rows, so they may be calculated before the split.
+
+Use an 80/20 stratified split with random_state=42. Predictors: text, char_count, digit_count. Learn the vocabulary, IDF, and scaler values on training rows only. Use the provided fixed workflow: a ColumnTransformer with a text branch (fill missing text with an empty string, then TfidfVectorizer(lowercase=True, stop_words=None, ngram_range=(1,1), min_df=2), with the column named as the string 'text') and a numeric branch (StandardScaler on char_count and digit_count), followed by LogisticRegression(max_iter=1000, random_state=42). Do not tune on test results. This random split estimates performance within this historical collection. Similar templates, shared senders, and future messages could require grouped or chronological evaluation. Sender/time fields are unavailable here.
+
+Source: Almeida, T. & Hidalgo, J. (2011). SMS Spam Collection. UCI Machine Learning Repository. https://doi.org/10.24432/C5CC84
+Dataset: https://archive.ics.uci.edu/dataset/228/sms+spam+collection
+License: Creative Commons Attribution 4.0, https://creativecommons.org/licenses/by/4.0/
+Changes: converted tab-delimited records to UTF-8 CSV, added IDs, mapped ham/spam to 0/1. For classroom use, removed 965 messages (807 ham and 158 spam) containing profanity, sexual or adult content, innuendo, slurs, flirty or romantic-intimate exchanges, dating and chat-line spam, drug or heavy-drinking references, violent content, or personal medical details. The remaining message text is unchanged. Because these removals were not random, results describe this screened subset rather than the full collection. Messages were screened by reading every message plus a keyword check, but informal slang may still occasionally be suggestive. Treat phone numbers and URLs as dataset text.
